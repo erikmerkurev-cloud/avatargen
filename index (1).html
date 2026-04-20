@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AvatarGen — AI видео с твоим лицом</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -413,7 +414,7 @@ textarea.inp{resize:vertical;min-height:100px;line-height:1.65;}
     <div class="af"><label>Пароль</label><input type="password" class="inp" placeholder="••••••••" /></div>
     <button class="auth-submit" id="authBtn" onclick="handleAuthSubmit()">Войти</button>
     <div class="auth-div">или</div>
-    <button class="auth-google" onclick="handleAuthSubmit()">
+    <button class="auth-google" onclick="handleGoogleAuth()">
       <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Продолжить с Google
     </button>
@@ -469,7 +470,7 @@ textarea.inp{resize:vertical;min-height:100px;line-height:1.65;}
         <div class="sb-cr-t"><span>Видео</span><span>13 / 50</span></div>
         <div class="sb-cr-bar"><div class="sb-cr-fill"></div></div>
       </div>
-      <div class="sb-user">
+      <div class="sb-user" onclick="handleSignOut()" title="Выйти">
         <div class="sb-ava">М</div>
         <div><div class="sb-uname">Marko</div><div class="sb-uplan">Pro план</div></div>
       </div>
@@ -602,7 +603,45 @@ textarea.inp{resize:vertical;min-height:100px;line-height:1.65;}
 </div>
 
 <script>
-// ROUTING
+// ====== SUPABASE CONFIG ======
+// ЗАМЕНИ ЭТИ ДВА ЗНАЧЕНИЯ НА СВОИ
+const SUPABASE_URL = 'ВСТАВЬ_ТВОЙ_PROJECT_URL';
+const SUPABASE_KEY = 'ВСТАВЬ_ТВОЙ_PUBLISHABLE_KEY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Check session on load
+window.addEventListener('load', async () => {
+  const {data:{session}} = await sb.auth.getSession();
+  if(session) {
+    currentUser = session.user;
+    goTo('s-app');
+    updateUserUI(session.user);
+  }
+  loadSettings();
+});
+
+// Auth state changes
+sb.auth.onAuthStateChange((event, session) => {
+  if(event === 'SIGNED_IN' && session) {
+    currentUser = session.user;
+    updateUserUI(session.user);
+    goTo('s-app');
+  }
+  if(event === 'SIGNED_OUT') {
+    currentUser = null;
+    goTo('s-landing');
+  }
+});
+
+let currentUser = null;
+function updateUserUI(user) {
+  const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+  const initials = name.charAt(0).toUpperCase();
+  document.querySelector('.sb-uname').textContent = name;
+  document.querySelector('.sb-ava').textContent = initials;
+}
+
+// ====== ROUTING
 function goTo(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -624,15 +663,68 @@ function switchAuth(m){
   document.getElementById('atReg').classList.toggle('on',m==='reg');
   document.getElementById('nameField').style.display=m==='reg'?'block':'none';
   document.getElementById('authBtn').textContent=m==='login'?'Войти':'Создать аккаунт';
+  window._authMode = m;
 }
-function handleAuthSubmit(){
-  // Check if came from landing with prompt
-  const pending=localStorage.getItem('ag_pending_prompt');
-  if(pending){
-    document.getElementById('appPrompt').value=pending;
-    localStorage.removeItem('ag_pending_prompt');
+
+async function handleAuthSubmit(){
+  const email = document.querySelector('#s-auth input[type=email]').value.trim();
+  const pass = document.querySelector('#s-auth input[type=password]').value.trim();
+  const btn = document.getElementById('authBtn');
+  const mode = window._authMode || 'login';
+
+  if(!email || !pass) return authError('Заполни email и пароль');
+  if(pass.length < 6) return authError('Пароль минимум 6 символов');
+
+  btn.textContent = '...';
+  btn.disabled = true;
+
+  try {
+    if(mode === 'reg') {
+      const name = document.querySelector('#nameField input')?.value.trim() || '';
+      const {data, error} = await sb.auth.signUp({
+        email, password: pass,
+        options: { data: { full_name: name } }
+      });
+      if(error) throw error;
+      if(data.user && !data.session) {
+        authError('Проверь email — мы отправили письмо для подтверждения');
+        return;
+      }
+    } else {
+      const {error} = await sb.auth.signInWithPassword({email, password: pass});
+      if(error) throw error;
+    }
+    const pending = localStorage.getItem('ag_pending_prompt');
+    if(pending) { document.getElementById('appPrompt').value = pending; localStorage.removeItem('ag_pending_prompt'); }
+  } catch(e) {
+    authError(e.message === 'Invalid login credentials' ? 'Неверный email или пароль' : e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = mode === 'login' ? 'Войти' : 'Создать аккаунт';
   }
-  goTo('s-app');
+}
+
+async function handleGoogleAuth() {
+  await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+}
+
+function authError(msg) {
+  let box = document.getElementById('authErrBox');
+  if(!box) {
+    box = document.createElement('div');
+    box.id = 'authErrBox';
+    box.style.cssText = 'padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;font-size:13px;color:#fca5a5;margin-top:10px;';
+    document.getElementById('authBtn').parentNode.insertBefore(box, document.getElementById('authBtn'));
+  }
+  box.textContent = '⚠ ' + msg;
+  document.getElementById('authBtn').disabled = false;
+}
+
+async function handleSignOut() {
+  await sb.auth.signOut();
 }
 
 // PAYMENT
@@ -674,17 +766,26 @@ function saveSettings(){localStorage.setItem('ag_fal',document.getElementById('f
 function saveVoice(){localStorage.setItem('ag_eleven',document.getElementById('elKey').value);localStorage.setItem('ag_voice',document.getElementById('voiceId').value);notice('✓ Голос сохранён');}
 function notice(t){const d=document.createElement('div');d.style.cssText='position:fixed;top:20px;right:20px;background:#22c55e;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2500);}
 
-window.addEventListener('load',()=>{
+function loadSettings(){
   const m={falKey:'ag_fal',claudeKey:'ag_claude',modelSel:'ag_model',elKey:'ag_eleven',voiceId:'ag_voice'};
   Object.entries(m).forEach(([id,k])=>{const v=localStorage.getItem(k);if(v&&document.getElementById(id))document.getElementById(id).value=v;});
-});
+}
 
-// PIPELINE
+// PIPELINE VIA VERCEL API
 function setStage(n){for(let i=1;i<=4;i++){const s=document.getElementById('ps'+i);if(i<n)s.className='pst done';else if(i===n)s.className='pst active';else s.className='pst';}}
 function setProg(p,l){document.getElementById('pfill').style.width=p+'%';document.getElementById('plbl').textContent=l;}
 function showErr(m){const b=document.getElementById('errBox');b.textContent='⚠ '+m;b.classList.add('on');}
 function hideErr(){document.getElementById('errBox').classList.remove('on');}
 function dlVid(){if(window._vUrl){const a=document.createElement('a');a.href=window._vUrl;a.download='reel.mp4';a.click();}}
+
+async function toBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
 
 async function runPipeline(){
   hideErr();
@@ -711,48 +812,58 @@ async function runPipeline(){
   document.getElementById('progBox').classList.add('on');
 
   try{
+    // 1. Script via Vercel API
     setStage(1);setProg(5,'Генерирую скрипт...');
-    const sr=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':claude,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:`Напиши скрипт для Instagram Reel (talking head, 45-60 сек, 120-150 слов).\nТема: ${prompt}\nТребования: русский язык, неформальный стиль, сильный хук в первые 2 секунды, CTA в конец.\nВерни только текст скрипта без пояснений.`}]})});
-    if(!sr.ok) throw new Error('Ошибка генерации скрипта. Проверь Anthropic ключ.');
+    const sr=await fetch('/api/script',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,claudeKey:claude})});
     const sd=await sr.json();
-    const script=sd.content?.[0]?.text||'';
+    if(!sr.ok) throw new Error(sd.error||'Ошибка генерации скрипта');
+    const script=sd.script;
     const so=document.getElementById('scriptOut');
     so.innerHTML=script.replace(/\n/g,'<br>');
     so.classList.add('has');
 
+    // 2. TTS via Vercel API
     setStage(2);setProg(18,'Синтез голоса...');
-    const tr=await fetch('https://api.elevenlabs.io/v1/text-to-speech/'+voice,{method:'POST',headers:{'xi-api-key':eleven,'Content-Type':'application/json'},body:JSON.stringify({text:script,model_id:'eleven_multilingual_v2',voice_settings:{stability:0.5,similarity_boost:0.8}})});
-    if(!tr.ok) throw new Error('Ошибка ElevenLabs. Проверь ключ и Voice ID.');
-    const aFile=new File([await tr.blob()],'voice.mp3',{type:'audio/mpeg'});
+    const tr=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:script,voiceId:voice,elevenKey:eleven})});
+    const td=await tr.json();
+    if(!tr.ok) throw new Error(td.error||'Ошибка ElevenLabs');
+    const audioBlob=new Blob([Uint8Array.from(atob(td.audio),c=>c.charCodeAt(0))],{type:'audio/mpeg'});
+    const audioFile=new File([audioBlob],'voice.mp3',{type:'audio/mpeg'});
 
+    // 3. Upload files via Vercel API
     setProg(28,'Загружаю файлы...');
-    const f1=new FormData();f1.append('file',window._avFile);
-    const u1=await fetch('https://fal.run/fal-ai/storage/upload',{method:'POST',headers:{'Authorization':'Key '+fal},body:f1});
-    if(!u1.ok) throw new Error('Ошибка загрузки фото');
-    const imgUrl=(await u1.json()).url;
-    const f2=new FormData();f2.append('file',aFile);
-    const u2=await fetch('https://fal.run/fal-ai/storage/upload',{method:'POST',headers:{'Authorization':'Key '+fal},body:f2});
-    if(!u2.ok) throw new Error('Ошибка загрузки аудио');
-    const audioUrl=(await u2.json()).url;
+    const imgBase64=await toBase64(window._avFile);
+    const ur1=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload',falKey:fal,fileData:imgBase64,fileName:window._avFile.name,fileType:window._avFile.type})});
+    const ud1=await ur1.json();
+    if(!ur1.ok) throw new Error(ud1.error||'Ошибка загрузки фото');
+    const imgUrl=ud1.url;
 
+    const audioBase64=await toBase64(audioFile);
+    const ur2=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload',falKey:fal,fileData:audioBase64,fileName:'voice.mp3',fileType:'audio/mpeg'})});
+    const ud2=await ur2.json();
+    if(!ur2.ok) throw new Error(ud2.error||'Ошибка загрузки аудио');
+    const audioUrl=ud2.url;
+
+    // 4. Submit video job
     setStage(3);setProg(40,'Генерирую видео...');
-    const vr=await fetch('https://queue.fal.run/'+model,{method:'POST',headers:{'Authorization':'Key '+fal,'Content-Type':'application/json'},body:JSON.stringify({image_url:imgUrl,audio_url:audioUrl})});
-    if(!vr.ok){const e=await vr.json().catch(()=>({}));throw new Error((e.detail||'Ошибка API')+' ('+vr.status+')');}
-    const{request_id}=await vr.json();
-    if(!request_id) throw new Error('Нет request_id. Проверь FAL.AI ключ.');
+    const vr=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'submit',falKey:fal,imageUrl:imgUrl,audioUrl,model})});
+    const vd=await vr.json();
+    if(!vr.ok) throw new Error(vd.error||'Ошибка запуска генерации');
+    const requestId=vd.request_id;
+    if(!requestId) throw new Error('Нет request_id');
 
+    // 5. Poll status
     for(let i=0;i<100;i++){
       await new Promise(r=>setTimeout(r,4000));
-      const ps=await fetch('https://queue.fal.run/'+model+'/requests/'+request_id+'/status',{headers:{'Authorization':'Key '+fal}});
+      const ps=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',falKey:fal,requestId,model})});
       const pd=await ps.json();
       if(pd.status==='COMPLETED'){
-        const rd=await fetch('https://queue.fal.run/'+model+'/requests/'+request_id,{headers:{'Authorization':'Key '+fal}});
+        const rd=await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'result',falKey:fal,requestId,model})});
         const res=await rd.json();
-        const url=res?.video?.url||res?.video_url||res?.output?.video?.url;
-        if(!url) throw new Error('URL видео не найден. Попробуй другую модель.');
+        if(!res.videoUrl) throw new Error('URL видео не найден');
         setStage(4);setProg(100,'✓ Готово!');
-        window._vUrl=url;
-        document.getElementById('voVid').src=url;
+        window._vUrl=res.videoUrl;
+        document.getElementById('voVid').src=res.videoUrl;
         document.getElementById('voRes').classList.add('on');
         document.getElementById('voPh').style.display='none';
         document.getElementById('dlBtn').style.display='block';
