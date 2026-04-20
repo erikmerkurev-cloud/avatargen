@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AvatarGen — AI видео с твоим лицом</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ffffff;
+  --bg2: #f5f5f7;
+  --bg3: #ebebed;
+  --dark: #0a0a0a;
+  --dark2: #1a1a1a;
+  --text: #111111;
+  --text2: #444444;
+  --text3: #888888;
+  --accent: #5b2ef7;
+  --accent2: #7c54ff;
+  --accent-bg: #f0ecff;
+  --lime: #22c55e;
+  --lime-bg: #dcfce7;
+  --border: #e5e5e5;
+  --border2: #d0d0d0;
+  --shadow: 0 2px 16px rgba(0,0,0,0.08);
+  --shadow2: 0 8px 40px rgba(0,0,0,0.12);
+  --r: 16px;
+  --rm: 12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+
+/* ===== PAGES ===== */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ===== NAV ===== */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.nav-logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.nav-logo-icon svg{width:18px;height:18px;fill:white;}
+.nav-logo-text{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-0.02em;}
+.nav-logo-text span{color:var(--accent);}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.btn-nav-ghost{padding:8px 16px;border:1.5px solid var(--border2);border-radius:8px;background:transparent;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.btn-nav-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-nav-fill{padding:8px 16px;border:none;border-radius:8px;background:var(--accent);color:white;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.btn-nav-fill:hover{background:var(--accent2);}
+
+/* ===== HERO ===== */
+.hero{padding:64px 24px 48px;max-width:680px;margin:0 auto;text-align:center;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--accent-bg);border-radius:20px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:24px;}
+.hero-badge-dot{width:7px;height:7px;border-radius:50%;background:var(--lime);animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.hero h1{font-size:clamp(36px,7vw,60px);font-weight:900;letter-spacing:-0.03em;line-height:1.05;color:var(--text);margin-bottom:16px;}
+.hero h1 .accent{color:var(--accent);}
+.hero-sub{font-size:17px;color:var(--text2);line-height:1.65;margin-bottom:32px;max-width:520px;margin-left:auto;margin-right:auto;}
+.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:48px;}
+.btn-hero{padding:14px 28px;border-radius:10px;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.15s;border:none;}
+.btn-hero.fill{background:var(--accent);color:white;}
+.btn-hero.fill:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(91,46,247,0.3);}
+.btn-hero.ghost{background:var(--bg2);color:var(--text);border:1.5px solid var(--border2);}
+.btn-hero.ghost:hover{border-color:var(--accent);color:var(--accent);}
+
+/* DEMO CARD */
+.demo-card{background:var(--dark);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow2);max-width:600px;margin:0 auto;}
+.demo-bar{background:#1a1a1a;padding:12px 16px;display:flex;align-items:center;gap:10px;}
+.demo-dots{display:flex;gap:5px;}
+.demo-dot{width:10px;height:10px;border-radius:50%;}
+.demo-dot:nth-child(1){background:#ff5f57;}
+.demo-dot:nth-child(2){background:#febc2e;}
+.demo-dot:nth-child(3){background:#28c840;}
+.demo-url{flex:1;background:#2a2a2a;border-radius:6px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:11px;color:#888;text-align:center;}
+.demo-body{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.demo-left{background:#1a1a1a;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.demo-label{font-family:'DM Mono',monospace;font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.1em;}
+.demo-input{background:#222;border-radius:6px;padding:10px;font-size:12px;color:#ccc;line-height:1.5;border:1px solid #333;}
+.demo-input span{color:white;}
+.demo-btn{background:var(--accent);border-radius:6px;padding:10px;text-align:center;font-size:12px;font-weight:700;color:white;}
+.demo-right{background:#1a1a1a;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:140px;}
+.demo-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));animation:glow 2s infinite;}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(91,46,247,0.4)}50%{box-shadow:0 0 0 12px rgba(91,46,247,0)}}
+.demo-wave{display:flex;align-items:center;gap:3px;height:20px;}
+.demo-wave span{width:3px;border-radius:2px;background:var(--accent2);animation:wave 1.2s infinite ease-in-out;}
+.demo-wave span:nth-child(2){animation-delay:.1s;}
+.demo-wave span:nth-child(3){animation-delay:.2s;}
+.demo-wave span:nth-child(4){animation-delay:.3s;}
+.demo-wave span:nth-child(5){animation-delay:.2s;}
+.demo-wave span:nth-child(6){animation-delay:.1s;}
+@keyframes wave{0%,100%{height:4px}50%{height:18px}}
+.demo-gen-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--accent2);}
+
+/* ===== STATS ===== */
+.stats{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:32px 24px;}
+.stats-inner{max-width:800px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.stat{text-align:center;}
+.stat-num{font-size:32px;font-weight:900;color:var(--text);letter-spacing:-0.03em;}
+.stat-num span{color:var(--accent);}
+.stat-label{font-size:13px;color:var(--text3);margin-top:4px;font-weight:500;}
+
+/* ===== SECTION ===== */
+.section{padding:64px 24px;max-width:900px;margin:0 auto;}
+.section-tag{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;font-weight:500;}
+.section-title{font-size:clamp(28px,4vw,42px);font-weight:900;letter-spacing:-0.03em;color:var(--text);margin-bottom:12px;line-height:1.1;}
+.section-title span{color:var(--accent);}
+.section-sub{font-size:16px;color:var(--text2);line-height:1.7;max-width:480px;margin-bottom:40px;}
+
+/* STEPS */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.step-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:24px;transition:all 0.2s;}
+.step-card:hover{border-color:var(--accent);background:var(--accent-bg);transform:translateY(-2px);box-shadow:var(--shadow);}
+.step-n{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:14px;font-weight:500;}
+.step-icon{font-size:28px;margin-bottom:12px;}
+.step-name{font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px;}
+.step-desc{font-size:14px;color:var(--text2);line-height:1.65;}
+
+/* PRICING */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.plan{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:28px;position:relative;transition:all 0.2s;}
+.plan:hover{box-shadow:var(--shadow);}
+.plan.featured{background:var(--dark);border-color:var(--dark);color:white;}
+.plan.featured .plan-name{color:#aaa;}
+.plan.featured .plan-price{color:white;}
+.plan.featured .plan-period{color:#666;}
+.plan.featured .plan-feat li{color:#ccc;}
+.plan-popular{position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--accent);color:white;font-size:10px;font-weight:700;padding:4px 14px;border-radius:0 0 8px 8px;letter-spacing:0.05em;white-space:nowrap;}
+.plan-name{font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;}
+.plan-price{font-size:40px;font-weight:900;letter-spacing:-0.04em;color:var(--text);margin-bottom:4px;}
+.plan-price sup{font-size:18px;font-weight:600;vertical-align:super;}
+.plan-price sub{font-size:14px;font-weight:500;color:var(--text3);}
+.plan-period{font-size:13px;color:var(--text3);margin-bottom:24px;}
+.plan-feat{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.plan-feat li{font-size:14px;color:var(--text2);display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
+.plan-feat li::before{content:'✓';color:var(--lime);font-weight:800;flex-shrink:0;margin-top:1px;}
+.plan-feat li.no{opacity:0.4;}
+.plan-feat li.no::before{content:'×';color:var(--text3);}
+.plan-btn{width:100%;padding:13px;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.15s;border:none;}
+.plan-btn.outline{background:transparent;border:1.5px solid var(--border2);color:var(--text);}
+.plan-btn.outline:hover{border-color:var(--accent);color:var(--accent);}
+.plan-btn.solid{background:var(--accent);color:white;}
+.plan-btn.solid:hover{background:var(--accent2);}
+.plan-btn.dark{background:white;color:var(--dark);}
+.plan-btn.dark:hover{background:#f0f0f0;}
+
+/* FOOTER */
+footer{background:var(--dark);color:white;padding:32px 24px;text-align:center;}
+.footer-logo{font-size:18px;font-weight:800;color:white;margin-bottom:8px;}
+.footer-logo span{color:var(--accent2);}
+.footer-copy{font-size:13px;color:#555;}
+
+/* ===== AUTH PAGE ===== */
+#auth{min-height:100vh;background:var(--bg2);display:flex;align-items:center;justify-content:center;padding:24px;}
+.auth-card{background:white;border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow2);width:100%;max-width:420px;padding:36px;}
+.auth-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:24px;transition:color 0.15s;}
+.auth-back:hover{color:var(--accent);}
+.auth-title{font-size:24px;font-weight:900;letter-spacing:-0.02em;color:var(--text);margin-bottom:6px;}
+.auth-sub{font-size:14px;color:var(--text3);margin-bottom:24px;}
+.auth-tabs{display:flex;background:var(--bg2);border-radius:10px;padding:4px;margin-bottom:24px;gap:4px;}
+.auth-tab{flex:1;padding:9px;text-align:center;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:'Inter',sans-serif;transition:all 0.15s;}
+.auth-tab.active{background:white;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+.auth-field{margin-bottom:14px;}
+.auth-field label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;}
+.auth-field input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.15s;background:white;}
+.auth-field input:focus{border-color:var(--accent);}
+.auth-submit{width:100%;padding:14px;border:none;border-radius:10px;background:var(--accent);color:white;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.15s;margin-top:4px;}
+.auth-submit:hover{background:var(--accent2);transform:translateY(-1px);}
+.auth-divider{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text3);margin:16px 0;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.auth-google{width:100%;padding:12px;border:1.5px solid var(--border2);border-radius:10px;background:white;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.auth-google:hover{border-color:var(--accent);}
+.auth-terms{font-size:12px;color:var(--text3);text-align:center;margin-top:16px;line-height:1.6;}
+.auth-terms a{color:var(--accent);text-decoration:none;}
+
+/* ===== APP ===== */
+#app{display:grid;grid-template-columns:220px 1fr;min-height:100vh;background:var(--bg2);}
+
+/* SIDEBAR */
+.sidebar{background:white;border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.sb-logo{display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:16px;}
+.sb-logo-icon{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;color:white;font-weight:800;}
+.sb-logo-text{font-size:14px;font-weight:800;color:var(--text);}
+.sb-logo-text span{color:var(--accent);}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:500;color:var(--text2);cursor:pointer;transition:all 0.15s;border:none;background:transparent;width:100%;text-align:left;font-family:'Inter',sans-serif;}
+.sb-item:hover{background:var(--bg2);color:var(--text);}
+.sb-item.active{background:var(--accent-bg);color:var(--accent);font-weight:600;}
+.sb-item .icon{font-size:16px;width:20px;text-align:center;}
+.sb-divider{height:1px;background:var(--border);margin:8px 0;}
+.sb-bottom{margin-top:auto;}
+.sb-credits{padding:12px;background:var(--bg2);border-radius:10px;margin-bottom:12px;}
+.sb-credits-top{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;}
+.sb-credits-bar{height:4px;background:var(--border);border-radius:2px;}
+.sb-credits-fill{height:100%;background:var(--accent);border-radius:2px;width:26%;}
+.sb-user{display:flex;align-items:center;gap:10px;padding:10px 12px;}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;flex-shrink:0;}
+.sb-user-name{font-size:13px;font-weight:600;color:var(--text);}
+.sb-user-plan{font-size:11px;color:var(--accent);font-weight:600;}
+
+/* MAIN */
+.app-main{padding:28px;overflow-y:auto;}
+.app-header{margin-bottom:24px;}
+.app-title{font-size:22px;font-weight:900;letter-spacing:-0.02em;color:var(--text);margin-bottom:4px;}
+.app-sub{font-size:14px;color:var(--text3);}
+
+/* STUDIO */
+.studio-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;}
+.studio-left{display:flex;flex-direction:column;gap:16px;}
+.studio-right{display:flex;flex-direction:column;gap:16px;}
+
+.s-card{background:white;border:1.5px solid var(--border);border-radius:var(--r);padding:20px;}
+.s-card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;}
+.s-textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;resize:vertical;min-height:100px;line-height:1.65;transition:border-color 0.15s;background:white;}
+.s-textarea:focus{border-color:var(--accent);}
+.s-textarea::placeholder{color:var(--text3);}
+
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.pill{padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text2);font-family:'Inter',sans-serif;}
+.pill:hover{border-color:var(--accent);color:var(--accent);}
+.pill.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
+
+.lang-row{display:flex;gap:6px;}
+.lang-btn{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:all 0.15s;}
+.lang-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:500;}
+
+.script-box{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-top:12px;font-size:13px;color:var(--text2);line-height:1.7;display:none;min-height:80px;}
+.script-box.on{display:block;}
+
+/* VIDEO CARD */
+.video-card{background:white;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.video-placeholder{background:var(--bg2);aspect-ratio:9/16;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;max-height:300px;}
+.vp-circle{width:52px;height:52px;border-radius:50%;background:var(--accent-bg);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.vp-text{font-size:13px;color:var(--text3);text-align:center;line-height:1.5;}
+.video-footer{padding:12px;display:flex;gap:8px;}
+.v-btn{flex:1;padding:10px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;border:none;display:none;}
+.v-btn.dl{background:var(--accent);color:white;}
+.v-btn.dl:hover{background:var(--accent2);}
+.v-btn.share{background:var(--bg2);color:var(--text);border:1.5px solid var(--border);}
+.v-btn.share:hover{border-color:var(--accent);}
+
+.run-btn{width:100%;padding:15px;border:none;border-radius:12px;background:var(--accent);color:white;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.run-btn:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(91,46,247,0.3);}
+.run-btn:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;transform:none;box-shadow:none;}
+.run-hint{text-align:center;font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:6px;}
+
+/* PROGRESS */
+.progress-box{display:none;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:16px;margin-top:12px;}
+.progress-box.on{display:block;}
+.prog-stages{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.prog-stage{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1.5px solid var(--border);color:var(--text3);transition:all 0.3s;font-family:'DM Mono',monospace;}
+.prog-stage.active{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);}
+.prog-stage.done{border-color:var(--lime);color:var(--lime);background:var(--lime-bg);}
+.prog-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:8px;}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.6s ease;width:0;}
+.prog-label{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;}
+
+/* ERROR */
+.err-box{display:none;padding:12px 14px;background:#fff5f5;border:1.5px solid #fecaca;border-radius:10px;font-size:13px;color:#dc2626;margin-top:12px;line-height:1.5;}
+.err-box.on{display:block;}
+
+/* RESULT VIDEO */
+.result-video-wrap{display:none;}
+.result-video-wrap.on{display:block;}
+.result-video-wrap video{width:100%;}
+
+/* SETTINGS PAGE */
+.settings-card{background:white;border:1.5px solid var(--border);border-radius:var(--r);padding:24px;max-width:500px;}
+.settings-card+.settings-card{margin-top:16px;}
+.s-field{margin-bottom:14px;}
+.s-field label{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;}
+.s-field input,.s-field select{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.15s;background:white;}
+.s-field input:focus,.s-field select:focus{border-color:var(--accent);}
+.s-field .hint{font-size:11px;color:var(--text3);margin-top:4px;}
+.save-btn{padding:12px 24px;border:none;border-radius:10px;background:var(--accent);color:white;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.save-btn:hover{background:var(--accent2);}
+
+/* HISTORY */
+.hist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+.hist-card{background:white;border:1.5px solid var(--border);border-radius:var(--rm);overflow:hidden;cursor:pointer;transition:all 0.15s;}
+.hist-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow);}
+.hist-thumb{aspect-ratio:9/16;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:28px;max-height:180px;}
+.hist-info{padding:10px;}
+.hist-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-date{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border2);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all 0.15s;position:relative;}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-bg);}
+.upload-zone.done{border-color:var(--lime);background:var(--lime-bg);border-style:solid;}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-main{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.upload-sub{font-size:12px;color:var(--text3);}
+.upload-name{font-size:12px;color:var(--lime);margin-top:8px;font-weight:600;font-family:'DM Mono',monospace;}
+
+@media(max-width:768px){
+  #app{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .studio-grid{grid-template-columns:1fr;}
+  .steps-grid,.pricing-grid{grid-template-columns:1fr;}
+  .stats-inner{grid-template-columns:repeat(2,1fr);}
+  .demo-body{grid-template-columns:1fr;}
+  nav{padding:0 16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LANDING ===== -->
+<div class="page active" id="landing">
+  <nav>
+    <a class="nav-logo" href="#">
+      <div class="nav-logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+      <div class="nav-logo-text">Avatar<span>Gen</span></div>
+    </a>
+    <div class="nav-right">
+      <button class="btn-nav-ghost" onclick="showPage('auth')">Войти</button>
+      <button class="btn-nav-fill" onclick="showPage('auth')">Начать бесплатно</button>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-badge"><div class="hero-badge-dot"></div> AI · Talking Avatar · Lip-sync</div>
+    <h1>Твоё лицо.<br><span class="accent">Любой скрипт.</span><br>За 2 минуты.</h1>
+    <p class="hero-sub">Напиши тему — AI напишет скрипт, озвучит твоим голосом и создаст видео с твоим аватаром. Готово к публикации.</p>
+    <div class="hero-btns">
+      <button class="btn-hero fill" onclick="showPage('auth')">Попробовать бесплатно →</button>
+      <button class="btn-hero ghost">Смотреть примеры</button>
+    </div>
+    <div class="demo-card">
+      <div class="demo-bar">
+        <div class="demo-dots"><div class="demo-dot"></div><div class="demo-dot"></div><div class="demo-dot"></div></div>
+        <div class="demo-url">avatargen.ai/studio</div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-left">
+          <div class="demo-label">Тема видео</div>
+          <div class="demo-input"><span>Почему 90% трейдеров теряют деньги в первый месяц</span></div>
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;background:#222;border:1px solid #333;border-radius:6px;padding:7px;font-size:10px;color:#aaa;text-align:center;">🇷🇺 Русский</div>
+            <div style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:7px;font-size:10px;color:#555;text-align:center;">🇺🇸 English</div>
+          </div>
+          <div class="demo-btn">✦ Генерировать видео</div>
+        </div>
+        <div class="demo-right">
+          <div class="demo-avatar"></div>
+          <div class="demo-wave"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="demo-gen-label">generating...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stats-inner">
+      <div class="stat"><div class="stat-num">2<span>мин</span></div><div class="stat-label">время генерации</div></div>
+      <div class="stat"><div class="stat-num">175<span>+</span></div><div class="stat-label">языков</div></div>
+      <div class="stat"><div class="stat-num">9<span>/10</span></div><div class="stat-label">качество lip-sync</div></div>
+      <div class="stat"><div class="stat-num">∞</div><div class="stat-label">видео (Pro)</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-tag">// как работает</div>
+    <div class="section-title">Три шага до <span>готового рилса</span></div>
+    <p class="section-sub">Никаких студий и камер. Только ты, идея, и AI.</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-n">01 —</div>
+        <div class="step-icon">✍️</div>
+        <div class="step-name">Пишешь тему</div>
+        <div class="step-desc">Вводишь идею одной фразой. AI генерирует готовый скрипт в твоём стиле под Reels формат.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-n">02 —</div>
+        <div class="step-icon">🎙</div>
+        <div class="step-name">AI озвучивает</div>
+        <div class="step-desc">Скрипт произносится точной копией твоего голоса. Звучит как ты — потому что это ты.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-n">03 —</div>
+        <div class="step-icon">🎬</div>
+        <div class="step-name">Получаешь видео</div>
+        <div class="step-desc">Аватар с твоим лицом и идеальным lip-sync. Скачиваешь и публикуешь в Instagram.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="background:var(--bg2);max-width:100%;padding:64px 24px;">
+    <div style="max-width:900px;margin:0 auto;">
+      <div class="section-tag">// тарифы</div>
+      <div class="section-title">Простые <span>цены</span></div>
+      <p class="section-sub">Начни бесплатно. Масштабируй по мере роста.</p>
+      <div class="pricing-grid">
+        <div class="plan">
+          <div class="plan-name">Старт</div>
+          <div class="plan-price"><sup>$</sup>0</div>
+          <div class="plan-period">навсегда бесплатно</div>
+          <ul class="plan-feat">
+            <li>5 видео в месяц</li>
+            <li>Водяной знак</li>
+            <li>HD 720p</li>
+            <li class="no">Клон голоса</li>
+            <li class="no">Приоритет генерации</li>
+          </ul>
+          <button class="plan-btn outline" onclick="showPage('auth')">Начать бесплатно</button>
+        </div>
+        <div class="plan featured">
+          <div class="plan-popular">ПОПУЛЯРНЫЙ</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price"><sup>$</sup>29<sub>/мес</sub></div>
+          <div class="plan-period">или $249/год (−28%)</div>
+          <ul class="plan-feat">
+            <li>50 видео в месяц</li>
+            <li>Без водяного знака</li>
+            <li>Full HD 1080p</li>
+            <li>Клон голоса</li>
+            <li>Приоритет генерации</li>
+          </ul>
+          <button class="plan-btn dark" onclick="showPage('auth')">Начать Pro</button>
+        </div>
+        <div class="plan">
+          <div class="plan-name">Business</div>
+          <div class="plan-price"><sup>$</sup>99<sub>/мес</sub></div>
+          <div class="plan-period">для команд и агентств</div>
+          <ul class="plan-feat">
+            <li>Безлимитные видео</li>
+            <li>Без водяного знака</li>
+            <li>4K качество</li>
+            <li>До 5 аватаров</li>
+            <li>API доступ</li>
+          </ul>
+          <button class="plan-btn outline" onclick="showPage('auth')">Связаться</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-logo">Avatar<span>Gen</span></div>
+    <div class="footer-copy" style="margin-top:8px;">© 2026 AvatarGen. Все права защищены.</div>
+  </footer>
+</div>
+
+<!-- ===== AUTH ===== -->
+<div class="page" id="auth">
+  <nav>
+    <a class="nav-logo" href="#" onclick="showPage('landing')">
+      <div class="nav-logo-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+      <div class="nav-logo-text">Avatar<span>Gen</span></div>
+    </a>
+  </nav>
+  <div id="auth" style="min-height:calc(100vh - 60px);background:var(--bg2);display:flex;align-items:center;justify-content:center;padding:24px;">
+    <div class="auth-card">
+      <button class="auth-back" onclick="showPage('landing')">← Назад</button>
+      <div class="auth-title">Добро пожаловать</div>
+      <div class="auth-sub">Войди или создай аккаунт</div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchAuth('login')">Войти</button>
+        <button class="auth-tab" id="tabReg" onclick="switchAuth('reg')">Регистрация</button>
+      </div>
+      <div id="nameWrap" style="display:none;" class="auth-field">
+        <label>Имя</label>
+        <input type="text" placeholder="Как тебя зовут?" />
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com" />
+      </div>
+      <div class="auth-field">
+        <label>Пароль</label>
+        <input type="password" placeholder="••••••••" />
+      </div>
+      <button class="auth-submit" id="authBtn" onclick="showPage('app')">Войти</button>
+      <div class="auth-divider">или</div>
+      <button class="auth-google" onclick="showPage('app')">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Продолжить с Google
+      </button>
+      <div class="auth-terms">Нажимая кнопку, ты соглашаешься с <a href="#">условиями</a> и <a href="#">политикой конфиденциальности</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div class="page" id="app">
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">✦</div>
+      <div class="sb-logo-text">Avatar<span>Gen</span></div>
+    </div>
+    <button class="sb-item active" onclick="showTab('studio',this)"><span class="icon">🎬</span> Студия</button>
+    <button class="sb-item" onclick="showTab('history',this)"><span class="icon">📁</span> История</button>
+    <button class="sb-item" onclick="showTab('avatar',this)"><span class="icon">🖼</span> Мой аватар</button>
+    <button class="sb-item" onclick="showTab('voice',this)"><span class="icon">🎙</span> Голос</button>
+    <div class="sb-divider"></div>
+    <button class="sb-item" onclick="showTab('settings',this)"><span class="icon">⚙️</span> Настройки</button>
+    <div class="sb-bottom">
+      <div class="sb-credits">
+        <div class="sb-credits-top"><span>Видео</span><span>13 / 50</span></div>
+        <div class="sb-credits-bar"><div class="sb-credits-fill"></div></div>
+      </div>
+      <div class="sb-user">
+        <div class="sb-avatar">М</div>
+        <div><div class="sb-user-name">Marko</div><div class="sb-user-plan">Pro план</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-main">
+
+    <!-- STUDIO -->
+    <div id="tab-studio">
+      <div class="app-header">
+        <div class="app-title">Студия</div>
+        <div class="app-sub">Напиши тему — получи видео с аватаром</div>
+      </div>
+      <div class="studio-grid">
+        <div class="studio-left">
+          <div class="s-card">
+            <div class="s-card-title">Тема или идея</div>
+            <textarea class="s-textarea" id="appPrompt" placeholder="Например: «3 ошибки которые я совершил в первый год трейдинга» или «Что такое стоп-лосс простыми словами»..."></textarea>
+            <div class="pills">
+              <button class="pill active" onclick="setPill(this)">📚 Образовательный</button>
+              <button class="pill" onclick="setPill(this)">💬 Личная история</button>
+              <button class="pill" onclick="setPill(this)">🔥 Хук / вирусный</button>
+              <button class="pill" onclick="setPill(this)">❌ Разбор мифа</button>
+            </div>
+          </div>
+          <div class="s-card">
+            <div class="s-card-title">Язык</div>
+            <div class="lang-row">
+              <button class="lang-btn active" onclick="setLang(this)">🇷🇺 Русский</button>
+              <button class="lang-btn" onclick="setLang(this)">🇺🇸 English</button>
+              <button class="lang-btn" onclick="setLang(this)">🇪🇸 Español</button>
+            </div>
+          </div>
+          <div class="s-card">
+            <div class="s-card-title">Сгенерированный скрипт</div>
+            <div class="script-box on" id="appScript" style="color:var(--text3);font-style:italic;">Скрипт появится здесь. Нажми «Создать видео» — AI напишет текст и сразу запустит генерацию.</div>
+          </div>
+          <div class="err-box" id="appErr"></div>
+          <div class="progress-box" id="appProg">
+            <div class="prog-stages">
+              <div class="prog-stage" id="ps1">1 · Скрипт</div>
+              <div class="prog-stage" id="ps2">2 · Голос</div>
+              <div class="prog-stage" id="ps3">3 · Видео</div>
+              <div class="prog-stage" id="ps4">4 · Готово</div>
+            </div>
+            <div class="prog-bar"><div class="prog-fill" id="pFill"></div></div>
+            <div class="prog-label" id="pLabel">Запуск...</div>
+          </div>
+        </div>
+
+        <div class="studio-right">
+          <div class="video-card">
+            <div class="result-video-wrap" id="appVideoWrap">
+              <video id="appVideo" controls playsinline style="width:100%;display:block;"></video>
+            </div>
+            <div class="video-placeholder" id="appPlaceholder">
+              <div class="vp-circle">🎬</div>
+              <div class="vp-text">Здесь появится<br>твоё видео</div>
+            </div>
+            <div class="video-footer">
+              <button class="v-btn dl" id="dlBtn" onclick="dlVideo()">⬇ Скачать</button>
+              <button class="v-btn share" id="shareBtn">↗ Поделиться</button>
+            </div>
+          </div>
+          <button class="run-btn" id="runBtn" onclick="runPipeline()">✦ Создать видео</button>
+          <div class="run-hint">~2-4 минуты · 1 кредит</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="tab-history" style="display:none;">
+      <div class="app-header"><div class="app-title">История</div><div class="app-sub">Все созданные видео</div></div>
+      <div class="hist-grid">
+        <div class="hist-card"><div class="hist-thumb">📈</div><div class="hist-info"><div class="hist-title">Стоп-лосс для начинающих</div><div class="hist-date">сегодня · 18:42</div></div></div>
+        <div class="hist-card"><div class="hist-thumb">💡</div><div class="hist-info"><div class="hist-title">Мой путь в трейдинге</div><div class="hist-date">вчера · 14:20</div></div></div>
+        <div class="hist-card"><div class="hist-thumb">🌙</div><div class="hist-info"><div class="hist-title">Moon Trader — что внутри</div><div class="hist-date">3 дня назад</div></div></div>
+        <div class="hist-card"><div class="hist-thumb">🔥</div><div class="hist-info"><div class="hist-title">Почему рынок непредсказуем</div><div class="hist-date">5 дней назад</div></div></div>
+      </div>
+    </div>
+
+    <!-- AVATAR -->
+    <div id="tab-avatar" style="display:none;">
+      <div class="app-header"><div class="app-title">Мой аватар</div><div class="app-sub">Загрузи фото для AI аватара</div></div>
+      <div class="settings-card">
+        <div class="s-card-title" style="margin-bottom:14px;">Фото аватара</div>
+        <div class="upload-zone" id="avatarZone">
+          <input type="file" accept="image/*" id="avatarFile" />
+          <div style="font-size:32px;margin-bottom:8px;">🖼</div>
+          <div class="upload-main">Загрузи своё фото</div>
+          <div class="upload-sub">JPG, PNG · анфас · хорошее освещение · рот закрыт</div>
+          <div class="upload-name" id="avatarName"></div>
+        </div>
+        <div style="margin-top:14px;padding:12px;background:var(--bg2);border-radius:10px;font-size:13px;color:var(--text2);line-height:1.6;">
+          💡 <strong>Совет:</strong> смотри прямо в камеру, нейтральный фон, хорошее освещение лица
+        </div>
+      </div>
+    </div>
+
+    <!-- VOICE -->
+    <div id="tab-voice" style="display:none;">
+      <div class="app-header"><div class="app-title">Клон голоса</div><div class="app-sub">Настрой через ElevenLabs</div></div>
+      <div class="settings-card">
+        <div class="s-field">
+          <label>ElevenLabs API Key</label>
+          <input type="password" id="voiceElevenKey" placeholder="sk-..." />
+          <div class="hint">elevenlabs.io → Profile → API Key</div>
+        </div>
+        <div class="s-field">
+          <label>Voice ID (твой клон)</label>
+          <input type="text" id="voiceId" placeholder="abc123def456..." />
+          <div class="hint">ElevenLabs → Voices → твой клон → ID</div>
+        </div>
+        <button class="save-btn" onclick="saveVoice()">Сохранить голос</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings" style="display:none;">
+      <div class="app-header"><div class="app-title">Настройки</div><div class="app-sub">API ключи и параметры генерации</div></div>
+      <div class="settings-card">
+        <div class="s-field">
+          <label>FAL.AI API Key</label>
+          <input type="password" id="setFal" placeholder="key_xxxx:xxxx" />
+          <div class="hint">fal.ai/dashboard/keys — для генерации видео</div>
+        </div>
+        <div class="s-field">
+          <label>Anthropic API Key</label>
+          <input type="password" id="setClaude" placeholder="sk-ant-..." />
+          <div class="hint">console.anthropic.com/keys — для генерации скриптов</div>
+        </div>
+        <div class="s-field">
+          <label>Модель видео</label>
+          <select id="setModel">
+            <option value="fal-ai/hedra-character-3">Hedra 3 — лучший lip-sync (рекомендуется)</option>
+            <option value="fal-ai/veed/talking-avatar">VEED Fabric — быстро и дёшево</option>
+            <option value="fal-ai/sync-lipsync">Sync Lipsync 2.0 — специализированный</option>
+          </select>
+        </div>
+        <button class="save-btn" onclick="saveSettings()">Сохранить настройки</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// PAGE ROUTING
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// AUTH
+function switchAuth(mode){
+  document.getElementById('tabLogin').classList.toggle('active',mode==='login');
+  document.getElementById('tabReg').classList.toggle('active',mode==='reg');
+  document.getElementById('nameWrap').style.display=mode==='reg'?'block':'none';
+  document.getElementById('authBtn').textContent=mode==='login'?'Войти':'Создать аккаунт';
+}
+
+// APP TABS
+function showTab(tab,el){
+  document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
+  document.getElementById('tab-'+tab).style.display='block';
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// PILLS & LANG
+function setPill(el){document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');}
+function setLang(el){document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+
+// AVATAR UPLOAD
+document.getElementById('avatarFile').addEventListener('change',function(){
+  if(this.files[0]){
+    window._avatarFile=this.files[0];
+    document.getElementById('avatarName').textContent='✓ '+this.files[0].name;
+    document.getElementById('avatarZone').classList.add('done');
+  }
+});
+
+// SETTINGS
+function saveSettings(){
+  localStorage.setItem('ag_fal',document.getElementById('setFal').value);
+  localStorage.setItem('ag_claude',document.getElementById('setClaude').value);
+  localStorage.setItem('ag_model',document.getElementById('setModel').value);
+  alert('✓ Настройки сохранены!');
+}
+function saveVoice(){
+  localStorage.setItem('ag_eleven',document.getElementById('voiceElevenKey').value);
+  localStorage.setItem('ag_voice',document.getElementById('voiceId').value);
+  alert('✓ Голос сохранён!');
+}
+
+window.addEventListener('load',()=>{
+  const vals={setFal:'ag_fal',setClaude:'ag_claude',setModel:'ag_model',voiceElevenKey:'ag_eleven',voiceId:'ag_voice'};
+  Object.entries(vals).forEach(([id,key])=>{const v=localStorage.getItem(key);if(v&&document.getElementById(id))document.getElementById(id).value=v;});
+});
+
+// HELPERS
+function setPS(n){for(let i=1;i<=4;i++){const s=document.getElementById('ps'+i);if(i<n)s.className='prog-stage done';else if(i===n)s.className='prog-stage active';else s.className='prog-stage';}}
+function setProg(pct,lbl){document.getElementById('pFill').style.width=pct+'%';document.getElementById('pLabel').textContent=lbl;}
+function showErr(m){const b=document.getElementById('appErr');b.textContent='⚠ '+m;b.classList.add('on');}
+function hideErr(){document.getElementById('appErr').classList.remove('on');}
+function dlVideo(){if(window._videoUrl){const a=document.createElement('a');a.href=window._videoUrl;a.download='reel.mp4';a.click();}}
+
+// MAIN PIPELINE
+async function runPipeline(){
+  hideErr();
+  document.getElementById('appVideoWrap').classList.remove('on');
+  document.getElementById('appPlaceholder').style.display='flex';
+  document.getElementById('dlBtn').style.display='none';
+  document.getElementById('shareBtn').style.display='none';
+
+  const falKey=localStorage.getItem('ag_fal')||'';
+  const claudeKey=localStorage.getItem('ag_claude')||'';
+  const elevenKey=localStorage.getItem('ag_eleven')||'';
+  const voiceId=localStorage.getItem('ag_voice')||'';
+  const model=localStorage.getItem('ag_model')||'fal-ai/hedra-character-3';
+  const prompt=document.getElementById('appPrompt').value.trim();
+
+  if(!falKey) return showErr('Добавь FAL.AI ключ в Настройки');
+  if(!claudeKey) return showErr('Добавь Anthropic ключ в Настройки');
+  if(!elevenKey||!voiceId) return showErr('Настрой клон голоса в разделе Голос');
+  if(!window._avatarFile) return showErr('Загрузи фото аватара в разделе Мой аватар');
+  if(!prompt) return showErr('Введи тему видео');
+
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true;
+  document.getElementById('appProg').classList.add('on');
+
+  try{
+    // 1. Script
+    setPS(1);setProg(5,'Генерирую скрипт...');
+    const sr=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:`Напиши скрипт для Instagram Reel (talking head, 45-60 сек, 120-150 слов).\nТема: ${prompt}\nТребования: русский язык, неформальный стиль, сильный хук в первые 2 секунды, CTA в конце (Telegram/Discord).\nВерни только текст скрипта без пояснений.`}]})
+    });
+    if(!sr.ok)throw new Error('Ошибка генерации скрипта. Проверь Anthropic ключ.');
+    const sd=await sr.json();
+    const script=sd.content?.[0]?.text||'';
+    document.getElementById('appScript').innerHTML=script.replace(/\n/g,'<br>');
+    document.getElementById('appScript').style.fontStyle='normal';
+    document.getElementById('appScript').style.color='var(--text)';
+
+    // 2. TTS
+    setPS(2);setProg(20,'Синтез голоса...');
+    const tr=await fetch('https://api.elevenlabs.io/v1/text-to-speech/'+voiceId,{
+      method:'POST',
+      headers:{'xi-api-key':elevenKey,'Content-Type':'application/json'},
+      body:JSON.stringify({text:script,model_id:'eleven_multilingual_v2',voice_settings:{stability:0.5,similarity_boost:0.8}})
+    });
+    if(!tr.ok)throw new Error('Ошибка ElevenLabs. Проверь ключ и Voice ID.');
+    const audioFile=new File([await tr.blob()],'voice.mp3',{type:'audio/mpeg'});
+
+    // Upload
+    setProg(30,'Загружаю файлы...');
+    const f1=new FormData();f1.append('file',window._avatarFile);
+    const u1=await fetch('https://fal.run/fal-ai/storage/upload',{method:'POST',headers:{'Authorization':'Key '+falKey},body:f1});
+    if(!u1.ok)throw new Error('Ошибка загрузки фото');
+    const imgUrl=(await u1.json()).url;
+
+    const f2=new FormData();f2.append('file',audioFile);
+    const u2=await fetch('https://fal.run/fal-ai/storage/upload',{method:'POST',headers:{'Authorization':'Key '+falKey},body:f2});
+    if(!u2.ok)throw new Error('Ошибка загрузки аудио');
+    const audioUrl=(await u2.json()).url;
+
+    // 3. Video
+    setPS(3);setProg(42,'Генерирую видео...');
+    const vr=await fetch('https://queue.fal.run/'+model,{
+      method:'POST',
+      headers:{'Authorization':'Key '+falKey,'Content-Type':'application/json'},
+      body:JSON.stringify({image_url:imgUrl,audio_url:audioUrl})
+    });
+    if(!vr.ok){const e=await vr.json().catch(()=>({}));throw new Error((e.detail||'Ошибка API')+' ('+vr.status+')');}
+    const{request_id}=await vr.json();
+    if(!request_id)throw new Error('Нет request_id. Проверь FAL.AI ключ.');
+
+    // Poll
+    for(let i=0;i<100;i++){
+      await new Promise(r=>setTimeout(r,4000));
+      const ps=await fetch('https://queue.fal.run/'+model+'/requests/'+request_id+'/status',{headers:{'Authorization':'Key '+falKey}});
+      const pd=await ps.json();
+      if(pd.status==='COMPLETED'){
+        const rd=await fetch('https://queue.fal.run/'+model+'/requests/'+request_id,{headers:{'Authorization':'Key '+falKey}});
+        const result=await rd.json();
+        const url=result?.video?.url||result?.video_url||result?.output?.video?.url;
+        if(!url)throw new Error('URL видео не найден. Попробуй другую модель.');
+        setPS(4);setProg(100,'✓ Готово!');
+        window._videoUrl=url;
+        document.getElementById('appVideo').src=url;
+        document.getElementById('appVideoWrap').classList.add('on');
+        document.getElementById('appPlaceholder').style.display='none';
+        document.getElementById('dlBtn').style.display='block';
+        document.getElementById('shareBtn').style.display='block';
+        return;
+      }
+      if(pd.status==='FAILED')throw new Error('Модель вернула ошибку. Попробуй другое фото.');
+      const p=Math.min(44+i*0.52,88);
+      setProg(p,'Генерация... '+Math.round(p)+'%');
+    }
+    throw new Error('Таймаут. Попробуй ещё раз.');
+  }catch(e){
+    showErr(e.message);
+    document.getElementById('appProg').classList.remove('on');
+  }finally{
+    btn.disabled=false;
+  }
+}
+</script>
+</body>
+</html>
